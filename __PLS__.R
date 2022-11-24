@@ -3,10 +3,14 @@ library(MASS)
 library(data.table)
 
 PLS<-function(data,Y,pvalue){
+
+  # pour extraire les indices des variable pour la construction du T1
   T1_vars_indices <- function(data, pvalue){
     verified <- c()
     i <- 1
+    # extraction des correlations et les P values
     rc <- rcorr(data, type=c("pearson","spearman"))
+    # pour chaque p value on verifie si elle est inferieur a la valeur de P value entrée
     for(x in rc$P[1:nrow(rc$P) - 1,"Y"]){
       if(abs(x) < pvalue && x != 1){
         verified = append(verified, i)
@@ -39,21 +43,31 @@ PLS<-function(data,Y,pvalue){
   
   
   #==========================================================
+
+  # Lecture des données
   data = as.data.frame(data)
+  # extraction de la variable Y
   y = data[,paste(Y)]
   data[Y] = NULL
+
+  # Renommer les variables
   names <- c()
   for (i in 1:(length(data)) ){
     names <- append(names, paste("X", i, sep=""))
   }
-  f <- paste("Y ~ 0 + ", paste(names, collapse=" + "),collapse='+')
-
   colnames(data) <- names
   data[,'Y'] <- as.numeric(y)
-  
+
+  f <- paste("Y ~ 0 + ", paste(names, collapse=" + "),collapse='+')
+
+  # Premiere regression
   lm <- lm(formula = f, data = data)
+
+  # Extraction des corrélations et les pvalues
   dtm<-as.matrix(data)
   rcorr(dtm, type=c("pearson","spearman"))
+
+  # Normalisation des données
   dtms<-scale(dtm)
   
   colnames(dtms)<- paste(colnames(data), "cn", sep='_')
@@ -78,8 +92,9 @@ PLS<-function(data,Y,pvalue){
   T1 = B / sqrt(A)
   T = as.data.frame(T1)
   DT_scale <- cbind(DT_scale, T)
-  # probably loop start here
   
+  # Construction des composantes T
+  #========================================================
   k <- 2
   repeat{
     
@@ -94,6 +109,7 @@ PLS<-function(data,Y,pvalue){
     DT_scale <- cbind(DT_scale, dtms)
     DT_scale <- cbind(DT_scale, T)
     
+    # Extraction des variables pour la construction de Tk
     verified <- c()
     for(i in 1:(length(colnames(dtms)) - 1) ){
       f <- paste("Y_cn ~ 0 + ", paste(paste(colnames(T), collapse=" + "), "+" ),paste(colnames(dtms)[i], collapse=" + ") )
@@ -103,6 +119,9 @@ PLS<-function(data,Y,pvalue){
         verified <- append(verified, colnames(dtms)[i])
       }
     }
+
+    #========================================================
+    # Condition d'arret
     if(length(verified) == 0){
       break
     }
@@ -150,5 +169,6 @@ path2data<-file.path("c:","Users","makch","STUDIES","s3","ADD","regPLS")
 # read data
 DM.dt <- fread(file.path(path2data, "Data_Cornell.csv"))
 mtcars <- fread("mtcars.csv")
+
 Tcor = PLS(DM.dt,'Y',0.05)
 Tmtcar = PLS(mtcars[,-c(1)],'mpg',0.05)
