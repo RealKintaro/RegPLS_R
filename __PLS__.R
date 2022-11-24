@@ -2,13 +2,13 @@ library(Hmisc)
 library(MASS)
 library(data.table)
 
-PLS<-function(data, alpha, beta){
-  T1_vars_indices <- function(data, alpha){
+PLS<-function(data,Y,pvalue){
+  T1_vars_indices <- function(data, pvalue){
     verified <- c()
     i <- 1
     rc <- rcorr(data, type=c("pearson","spearman"))
-    for(x in rc$r[,"Y"]){
-      if(abs(x) > alpha && x != 1){
+    for(x in rc$P[1:nrow(rc$P) - 1,"Y"]){
+      if(abs(x) < pvalue && x != 1){
         verified = append(verified, i)
       }
       i <- i+1
@@ -39,32 +39,29 @@ PLS<-function(data, alpha, beta){
   
   
   #==========================================================
-  
-  
-  #dt <- fread("Data_Cornell.csv")
-  
+  data = as.data.frame(data)
+  y = data[,paste(Y)]
+  data[Y] = NULL
   names <- c()
-  for (i in 1:(length(data)-1) ){
+  for (i in 1:(length(data)) ){
     names <- append(names, paste("X", i, sep=""))
   }
-  
   f <- paste("Y ~ 0 + ", paste(names, collapse=" + "),collapse='+')
-  
-  names <- append(names,"Y")
+
   colnames(data) <- names
-  
+  data[,'Y'] <- as.numeric(y)
   
   lm <- lm(formula = f, data = data)
   dtm<-as.matrix(data)
   rcorr(dtm, type=c("pearson","spearman"))
   dtms<-scale(dtm)
   
-  colnames(dtms)<- paste(names, "cn", sep='_')
+  colnames(dtms)<- paste(colnames(data), "cn", sep='_')
   DT_scale <- cbind(dtm,dtms)
   cov_m <- cov(dtms)
   
   
-  verified <- T1_vars_indices(data = dtm, alpha)
+  verified <- T1_vars_indices(data = dtm, pvalue)
   #========================================================
   #calculate T1
   # first term in T1
@@ -102,7 +99,7 @@ PLS<-function(data, alpha, beta){
       f <- paste("Y_cn ~ 0 + ", paste(paste(colnames(T), collapse=" + "), "+" ),paste(colnames(dtms)[i], collapse=" + ") )
       lm_<-lm(formula = f, data=DT_scale)
       pval <- summary(lm_)$coefficients[,4][colnames(dtms)[i]]
-      if (pval < beta){
+      if (pval < pvalue){
         verified <- append(verified, colnames(dtms)[i])
       }
     }
@@ -145,3 +142,13 @@ PLS<-function(data, alpha, beta){
   }
   return(DT_scale)
 }
+
+# get of this file path
+
+path2data<-file.path("c:","Users","makch","STUDIES","s3","ADD","regPLS")
+
+# read data
+DM.dt <- fread(file.path(path2data, "Data_Cornell.csv"))
+mtcars <- fread("mtcars.csv")
+Tcor = PLS(DM.dt,'Y',0.05)
+Tmtcar = PLS(mtcars[,-c(1)],'mpg',0.05)
