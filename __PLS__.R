@@ -115,8 +115,10 @@ PLS<-function(data,Y,pvalue){
       f <- paste("Y_cn ~ 0 + ", paste(paste(colnames(T), collapse=" + "), "+" ),paste(colnames(dtms)[i], collapse=" + ") )
       lm_<-lm(formula = f, data=DT_scale)
       pval <- summary(lm_)$coefficients[,4][colnames(dtms)[i]]
-      if (pval < pvalue){
-        verified <- append(verified, colnames(dtms)[i])
+      if(! is.na(pval)){
+        if (pval < pvalue){
+          verified <- append(verified, colnames(dtms)[i])
+        }
       }
     }
 
@@ -170,5 +172,5 @@ path2data<-file.path("c:","Users","makch","STUDIES","s3","ADD","regPLS")
 DM.dt <- fread(file.path(path2data, "Data_Cornell.csv"))
 mtcars <- fread("mtcars.csv")
 
-Tcor = PLS(DM.dt,'Y',0.05)
-Tmtcar = PLS(mtcars[,-c(1)],'mpg',0.05)
+Tcor = PLS(DM.dt,'Y',0.2)
+Tmtcar = PLS(mtcars[,-c(1)],'mpg',0.2)
