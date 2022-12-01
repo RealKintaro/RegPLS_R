@@ -93,6 +93,13 @@ PLS<-function(data,Y,pvalue){
   T = as.data.frame(T1)
   DT_scale <- cbind(DT_scale, T)
   
+  # L'explication des T en function des variables
+  Texp = c()
+  T1formula = "T1 = 0"
+  for (x in colnames(dtms)[verified]){
+    T1formula <- paste(T1formula, paste(x , cov_m["Y_cn",x],  sep = " * "), sep = " + ")
+  }
+  Texp = append(Texp , T1formula)
   # Construction des composantes T
   #========================================================
   k <- 2
@@ -154,14 +161,23 @@ PLS<-function(data,Y,pvalue){
     # second term in Ti
     B <- 0
     for (i in 1:length(verified_)){
+      
       B <- B + (coef_[i] * r[,verified_[i]]) 
     }
     assign(paste("T",k, sep=""), B / A)
     T <- cbind(T,get(paste("T",k, sep="")))
+    z = 1
+    Tformula = paste(paste('T',k,sep = ""), "0" , sep = '=') 
+    for (x in verified){
+      Tformula <- paste(Tformula, paste(x , coef_[z],  sep = " * "), sep = " + ")
+      z = z+1
+    }
+    Texp = append(Texp , Tformula)
     
     k<-k+1
   }
-  return(DT_scale)
+  res = list('T_table'= DT_scale,"T_exp"= Texp)
+  return(res)
 }
 
 # get of this file path
@@ -172,5 +188,14 @@ path2data<-file.path("c:","Users","makch","STUDIES","s3","ADD","regPLS")
 DM.dt <- fread(file.path(path2data, "Data_Cornell.csv"))
 mtcars <- fread("mtcars.csv")
 
-Tcor = PLS(DM.dt,'Y',0.2)
-Tmtcar = PLS(mtcars[,-c(1)],'mpg',0.2)
+corres = PLS(DM.dt,'Y',0.1)
+Tcor = corres$T_table
+Tcorexp = corres$T_exp
+
+mtcarres = PLS(mtcars[,-c(1)],'mpg',0.1)
+
+Tmtcar = mtcarres$T_table
+Tmtcarexp = mtcarres$T_exp
+
+Tmtcarexp = as.data.frame(Tmtcarexp)
+Tcorexp = as.data.frame(Tcorexp)
