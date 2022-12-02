@@ -1,6 +1,7 @@
 library(Hmisc)
 library(MASS)
 library(data.table)
+library(rprojroot)
 
 PLS<-function(data,Y,pvalue){
 
@@ -182,13 +183,14 @@ PLS<-function(data,Y,pvalue){
 
 # get of this file path
 
-path2data<-file.path("c:","Users","makch","STUDIES","s3","ADD","regPLS")
+#path2data<-file.path("c:","Users","KINTARO","STUDIES","s3","Analyse de donees","RegPLS_R")
 
+path2data = find_rstudio_root_file()
 # read data
 DM.dt <- fread(file.path(path2data, "Data_Cornell.csv"))
-mtcars <- fread("mtcars.csv")
+mtcars <- fread(file.path(path2data,"mtcars.csv"))
 
-corres = PLS(DM.dt,'Y',0.1)
+corres = PLS(DM.dt,'Y',0.05)
 Tcor = corres$T_table
 Tcorexp = corres$T_exp
 
